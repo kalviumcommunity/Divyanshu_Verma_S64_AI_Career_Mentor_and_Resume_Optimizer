@@ -33,7 +33,7 @@ Make sure you have Python 3.8+ installed on your computer.
 
 ### 2. Clone/Download Project
 ```bash
-git clone <your-repo-url>
+git clone https://github.com/your-username/ai-career-mentor.git
 cd ai-career-mentor
 ```
 
