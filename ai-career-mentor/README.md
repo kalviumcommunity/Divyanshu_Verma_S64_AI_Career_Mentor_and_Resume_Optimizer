@@ -60,7 +60,7 @@ pip install -r requirements.txt
 
 ### 6. Set Up API Key
 1. Copy `.env.example` to `.env`
-2. Get a Google Gemini API key from [Google AI Studio](https://makersuite.google.com/app/apikey)
+2. Get a Google Gemini API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
 3. Add your key to `.env`:
 ```
 GEMINI_API_KEY=your_api_key_here
