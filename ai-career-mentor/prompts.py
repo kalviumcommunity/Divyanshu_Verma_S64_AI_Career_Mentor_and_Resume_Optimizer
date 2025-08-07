@@ -60,13 +60,13 @@ def create_user_prompt(user_data, job_requirements, career_tips):
     user_prompt = f"""Create a personalized resume optimization for the following candidate:
 
 CANDIDATE INFORMATION:
-- Name: {user_data['name']}
-- Current Skills: {', '.join(user_data['skills'])}
-- Target Role: {user_data['target_role']}
-- Tone Preference: {user_data['tone']}
+- Name: {user_data.get('name', 'N/A')}
+- Current Skills: {', '.join(user_data.get('skills', []))}
+- Target Role: {user_data.get('target_role', 'N/A')}
+- Tone Preference: {user_data.get('tone', 'professional')}
 
 JOB REQUIREMENTS:
-- Required Skills: {', '.join(job_requirements['required_skills'])}
+- Required Skills: {', '.join(job_requirements.get('required_skills', []))}
 - Nice to Have: {', '.join(job_requirements.get('nice_to_have', []))}
 
 INDUSTRY GUIDANCE:
