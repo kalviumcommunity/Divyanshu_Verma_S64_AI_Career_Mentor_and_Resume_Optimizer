@@ -9,23 +9,31 @@ This module handles communication with Google's Gemini API, including:
 
 import os
 import json
+import re
 import google.generativeai as genai
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
 load_dotenv()
 
+# Module-level flag to track initialization status
+_INITIALIZED = False
+
 
 def initialize_gemini():
     """
     Initialize the Gemini API with the API key from environment variables.
-    
-    Returns:
-        bool: True if initialization successful, False otherwise
+    Uses a module-level flag to prevent redundant reconfigurations.
     
     Raises:
         ValueError: If API key is not found in environment variables
     """
+    global _INITIALIZED
+    
+    # Skip if already initialized
+    if _INITIALIZED:
+        return
+    
     api_key = os.getenv('GEMINI_API_KEY')
     
     if not api_key:
@@ -37,29 +45,39 @@ def initialize_gemini():
     
     try:
         genai.configure(api_key=api_key)
-        return True
+        _INITIALIZED = True
     except Exception as e:
         raise ValueError(f"Failed to initialize Gemini API: {str(e)}")
 
 
-def get_generation_config():
+
+
+def extract_json_from_response(response_text):
     """
-    Get basic generation configuration for Gemini API.
+    Extract JSON block from response text that may contain markdown fences or explanatory text.
+    
+    Args:
+        response_text (str): Raw response text from Gemini API
     
     Returns:
-        dict: Basic generation configuration
+        str: Extracted JSON string or original text if no JSON block found
     """
-    return {
-        "max_output_tokens": 500,
-        "top_k": 40,
-        "top_p": 0.8,
-        "temperature": 0.7  # Default balanced temperature
-    }
+    # Remove markdown code fences if present
+    response_text = re.sub(r'```json\s*', '', response_text)
+    response_text = re.sub(r'```\s*$', '', response_text, flags=re.MULTILINE)
+    
+    # Try to find JSON block using regex (first occurrence of {...})
+    json_match = re.search(r'\{.*\}', response_text, re.DOTALL)
+    if json_match:
+        return json_match.group(0).strip()
+    
+    # If no braces found, return original text (will likely fail JSON parsing)
+    return response_text.strip()
 
 
 def validate_json_response(response_text):
     """
-    Validate and parse JSON response from Gemini.
+    Validate and parse JSON response from Gemini, handling markdown fences and text.
     
     Args:
         response_text (str): Raw response text from Gemini API
@@ -68,8 +86,11 @@ def validate_json_response(response_text):
         dict: Parsed JSON response or error dict if invalid
     """
     try:
+        # Extract JSON from potentially wrapped response
+        json_text = extract_json_from_response(response_text)
+        
         # Try to parse the JSON
-        parsed_response = json.loads(response_text)
+        parsed_response = json.loads(json_text)
         
         # Validate that required fields exist
         if "resumeBullets" not in parsed_response or "skillGaps" not in parsed_response:
@@ -85,12 +106,28 @@ def validate_json_response(response_text):
                 "suggestion": "resumeBullets and skillGaps must be arrays"
             }
         
+        # Validate that all elements in resumeBullets are strings
+        for i, bullet in enumerate(parsed_response["resumeBullets"]):
+            if not isinstance(bullet, str):
+                return {
+                    "error": "Invalid resumeBullets format",
+                    "suggestion": f"resumeBullets[{i}] must be a string, got {type(bullet).__name__}"
+                }
+        
+        # Validate that all elements in skillGaps are strings
+        for i, gap in enumerate(parsed_response["skillGaps"]):
+            if not isinstance(gap, str):
+                return {
+                    "error": "Invalid skillGaps format",
+                    "suggestion": f"skillGaps[{i}] must be a string, got {type(gap).__name__}"
+                }
+        
         return parsed_response
         
     except json.JSONDecodeError as e:
         return {
             "error": "Invalid JSON response from AI",
-            "suggestion": f"JSON parsing failed: {str(e)}"
+            "suggestion": f"JSON parsing failed: {str(e)}. Extracted text: {json_text[:100]}..."
         }
 
 
@@ -115,11 +152,6 @@ def call_gemini_api(system_prompt, user_prompt, max_retries=1):
     try:
         # Initialize Gemini API
         initialize_gemini()
-        
-        # Get basic generation configuration
-        generation_config = get_generation_config()
-        
-        # Create the model
         model = genai.GenerativeModel('gemini-2.5-flash')
         
         # Add JSON format instruction to ensure structured output
@@ -150,12 +182,22 @@ Do not include any text before or after the JSON."""
                 # Generate content
                 response = model.generate_content(
                     contents=full_prompt,
-                    generation_config=generation_config
                 )
                 
-                # Validate and parse the response
-                if response.text:
-                    validated_response = validate_json_response(response.text.strip())
+                # Get response text using proper accessor
+                response_text = ""
+                
+                # Try response.parts first (recommended approach)
+                if hasattr(response, 'parts') and response.parts:
+                    response_text = response.parts[0].text.strip()
+                # Fallback to candidate approach
+                elif response.candidates and len(response.candidates) > 0:
+                    candidate = response.candidates[0]
+                    if candidate.content and candidate.content.parts:
+                        response_text = candidate.content.parts[0].text.strip()
+                
+                if response_text:
+                    validated_response = validate_json_response(response_text)
                     
                     # If validation successful, return the response
                     if "error" not in validated_response:
