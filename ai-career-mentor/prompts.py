@@ -70,7 +70,7 @@ JOB REQUIREMENTS:
 - Nice to Have: {', '.join(job_requirements.get('nice_to_have', []))}
 
 INDUSTRY GUIDANCE:
-{\n.join(f'- {tip}' for tip in career_tips)}
+{chr(10).join(f'- {tip}' for tip in career_tips)}
 
 TASK:
 Generate 3-5 tailored resume bullet points that showcase the candidate's experience in a way that aligns with the target role. Also identify 2-3 specific skill gaps they should focus on developing.
