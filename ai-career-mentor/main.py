@@ -38,11 +38,30 @@ def collect_user_input():
     else:
         tone = "professional"  # Default to professional
     
+    # Collect top_k preference for vocabulary diversity
+    print("\nChoose vocabulary diversity (Top K parameter):")
+    print("1. Focused vocabulary (top_k=20) - More predictable, common words")
+    print("2. Balanced vocabulary (top_k=40) - Default Gemini setting")
+    print("3. Diverse vocabulary (top_k=80) - More creative, varied word choices")
+    print("4. Skip (use default)")
+    top_k_choice = input("Enter choice (1-4): ").strip()
+    
+    # Convert choice to top_k value
+    top_k = None
+    if top_k_choice == "1":
+        top_k = 20
+    elif top_k_choice == "2":
+        top_k = 40
+    elif top_k_choice == "3":
+        top_k = 80
+    # Choice 4 or invalid = None (use default)
+    
     return {
         "name": name,
         "skills": skills,
         "target_role": target_role,
-        "tone": tone
+        "tone": tone,
+        "top_k": top_k
     }
 
 def process_user_request(user_data):
@@ -115,8 +134,8 @@ def generate_ai_response(user_data, job_requirements, career_tips):
         # Create user prompt with all the context
         user_prompt = create_user_prompt(user_data, job_requirements, career_tips)
         
-        # Call Gemini API with structured output and temperature control
-        response = call_gemini_api(SYSTEM_PROMPT, user_prompt, tone=user_data['tone'], max_retries=1)
+        # Call Gemini API with structured output, temperature control, and top_k parameter
+        response = call_gemini_api(SYSTEM_PROMPT, user_prompt, tone=user_data['tone'], top_k=user_data.get('top_k'), max_retries=1)
         
         return response
         
@@ -166,6 +185,7 @@ def display_results(user_data, processed_data):
     print(f"\n👤 Candidate: {user_data['name']}")
     print(f"🎯 Target Role: {processed_data['job_requirements']['role']}")
     print(f"🎨 Tone: {user_data['tone'].title()}")
+    print(f"🎛️  Top K: {user_data.get('top_k', 'Default')} (vocabulary diversity)")
     print(f"💼 Current Skills: {', '.join(user_data['skills'])}")
     
     # Display the main output in JSON format (as specified in requirements)

@@ -131,43 +131,57 @@ def validate_json_response(response_text):
         }
 
 
-def get_generation_config(tone="professional"):
+def get_generation_config(tone="professional", top_k=None):
     """
-    Get generation configuration based on tone preference.
+    Get generation configuration based on tone preference and top_k setting.
     
     Temperature controls creativity and randomness in responses:
     - Lower temperature (0.3) = More consistent, focused, professional responses
     - Higher temperature (0.8) = More creative, varied, innovative responses
     
+    Top K controls vocabulary selection by limiting to top K most likely tokens:
+    - Lower top_k (10-20) = More focused, predictable vocabulary
+    - Higher top_k (40-100) = More diverse, varied word choices
+    - None/default = Uses Gemini's default top_k (typically 40)
+    
     Args:
         tone (str): Either "professional" or "creative"
+        top_k (int, optional): Number of top tokens to consider (1-100)
     
     Returns:
         dict: Generation configuration for Gemini API
     
     Examples:
-        Professional tone produces consistent, formal resume bullets:
+        Professional tone with low top_k (20):
         "Developed web applications using React and JavaScript"
         
-        Creative tone produces more varied, dynamic language:
-        "Crafted innovative web solutions leveraging React ecosystem"
+        Creative tone with high top_k (80):
+        "Architected innovative web solutions leveraging React ecosystem"
+        
+        Low top_k produces more predictable, common word choices
+        High top_k allows more diverse, creative vocabulary selection
     """
+    config = {}
+    
     if tone == "professional":
-        return {
-            "temperature": 0.3,  # Less creative, more consistent
-            "max_output_tokens": 500
-        }
+        config["temperature"] = 0.3  # Less creative, more consistent
     elif tone == "creative":
-        return {
-            "temperature": 0.8,  # More creative, more varied
-            "max_output_tokens": 500
-        }
+        config["temperature"] = 0.8  # More creative, more varied
     else:
         # Default to professional if invalid tone provided
-        return {
-            "temperature": 0.3,
-            "max_output_tokens": 500
-        }
+        config["temperature"] = 0.3
+    
+    # Always set max_output_tokens
+    config["max_output_tokens"] = 500
+    
+    # Add top_k if specified (validate range)
+    if top_k is not None:
+        if isinstance(top_k, int) and 1 <= top_k <= 100:
+            config["top_k"] = top_k
+        else:
+            print(f"⚠️  Warning: Invalid top_k value {top_k}. Must be integer between 1-100. Using default.")
+    
+    return config
 
 
 def estimate_token_count(text):
@@ -253,7 +267,7 @@ def log_token_usage(response, input_text=""):
         print(f"\n⚠️  Could not retrieve token usage: {str(e)}\n")
 
 
-def call_gemini_api(system_prompt, user_prompt, tone="professional", max_retries=1):
+def call_gemini_api(system_prompt, user_prompt, tone="professional", top_k=None, max_retries=1):
     """
     Send prompts to Google's Gemini API and return generated response.
     
@@ -261,6 +275,7 @@ def call_gemini_api(system_prompt, user_prompt, tone="professional", max_retries
         system_prompt (str): System prompt defining AI behavior
         user_prompt (str): User prompt with specific request
         tone (str): Either "professional" (temp=0.3) or "creative" (temp=0.8)
+        top_k (int, optional): Number of top tokens to consider (1-100)
         max_retries (int): Number of retries if JSON parsing fails
     
     Returns:
@@ -270,6 +285,13 @@ def call_gemini_api(system_prompt, user_prompt, tone="professional", max_retries
         Professional (0.3): "Developed responsive web applications using React"
         Creative (0.8): "Architected dynamic user experiences with React ecosystem"
     
+    Top K Examples:
+        Low top_k (20): More predictable, common vocabulary
+        "Developed web applications using standard frameworks"
+        
+        High top_k (80): More diverse, creative word choices
+        "Architected sophisticated applications utilizing cutting-edge frameworks"
+    
     Token Logging:
         Automatically logs input/output token counts after each API call
         to help users understand API usage and costs
@@ -278,7 +300,8 @@ def call_gemini_api(system_prompt, user_prompt, tone="professional", max_retries
         response = call_gemini_api(
             system_prompt="You are a career mentor...",
             user_prompt="Help John optimize his resume...",
-            tone="creative"
+            tone="creative",
+            top_k=60
         )
     """
     try:
@@ -308,8 +331,8 @@ Do not include any text before or after the JSON."""
         # Combine prompts with JSON instruction
         full_prompt = f"{system_prompt}\n\n{user_prompt}\n\n{json_instruction}"
         
-        # Get generation configuration based on tone
-        generation_config = get_generation_config(tone)
+        # Get generation configuration based on tone and top_k
+        generation_config = get_generation_config(tone, top_k)
         
         # Attempt to get response with retries
         for attempt in range(max_retries + 1):
