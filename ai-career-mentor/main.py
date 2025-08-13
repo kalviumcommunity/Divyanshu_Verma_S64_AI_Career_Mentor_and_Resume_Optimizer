@@ -7,6 +7,8 @@ Simple MVP that helps job seekers create better resumes
 # Import our custom modules
 from job_functions import getJobRequirements, getAllJobRoles
 from rag_knowledge import retrieveCareerTips, retrieveResumeExamples, searchKnowledgeBase
+from gemini_client import call_gemini_api
+from prompts import SYSTEM_PROMPT, create_user_prompt
 import json
 
 def collect_user_input():
@@ -69,16 +71,27 @@ def process_user_request(user_data):
     skill_gaps = analyze_skill_gaps(user_data['skills'], job_requirements['required_skills'])
     print(f"✓ Identified {len(skill_gaps)} skill gaps")
     
-    # Step 5: Generate mock resume bullets (simulating AI generation)
-    print("🤖 Step 5: Generating personalized resume bullets...")
-    resume_bullets = generate_resume_bullets(user_data, job_requirements, career_tips, resume_examples)
-    print(f"✓ Generated {len(resume_bullets)} resume bullet points")
+    # Step 5: Generate AI-powered resume bullets using structured output
+    print("🤖 Step 5: Generating AI-powered resume bullets with structured output...")
+    ai_response = generate_ai_response(user_data, job_requirements, career_tips)
+    
+    if "error" in ai_response:
+        print(f"⚠️  AI generation failed: {ai_response['error']}")
+        print("   Falling back to example-based generation...")
+        # Fallback to example-based generation
+        resume_bullets = generate_resume_bullets(user_data, job_requirements, career_tips, resume_examples)
+        ai_skill_gaps = skill_gaps  # Use our calculated skill gaps
+    else:
+        print(f"✓ AI generated {len(ai_response['resumeBullets'])} resume bullets")
+        print(f"✓ AI identified {len(ai_response['skillGaps'])} skill gaps")
+        resume_bullets = ai_response['resumeBullets']
+        ai_skill_gaps = ai_response['skillGaps']
     
     return {
         "job_requirements": job_requirements,
         "career_tips": career_tips,
         "resume_examples": resume_examples,
-        "skill_gaps": skill_gaps,
+        "skill_gaps": ai_skill_gaps,
         "resume_bullets": resume_bullets
     }
 
@@ -95,6 +108,23 @@ def analyze_skill_gaps(user_skills, required_skills):
     
     # Return up to 3 skill gaps as specified in requirements
     return missing_skills[:3]
+
+def generate_ai_response(user_data, job_requirements, career_tips):
+    """Generate AI-powered resume bullets and skill gaps using structured output"""
+    try:
+        # Create user prompt with all the context
+        user_prompt = create_user_prompt(user_data, job_requirements, career_tips)
+        
+        # Call Gemini API with structured output (includes retry mechanism)
+        response = call_gemini_api(SYSTEM_PROMPT, user_prompt, max_retries=1)
+        
+        return response
+        
+    except Exception as e:
+        return {
+            "error": f"AI generation failed: {str(e)}",
+            "suggestion": "Check your API key and internet connection"
+        }
 
 def generate_resume_bullets(user_data, job_requirements, career_tips, resume_examples):
     """Generate personalized resume bullets based on user data and knowledge"""
