@@ -131,22 +131,67 @@ def validate_json_response(response_text):
         }
 
 
-def call_gemini_api(system_prompt, user_prompt, max_retries=1):
+def get_generation_config(tone="professional"):
+    """
+    Get generation configuration based on tone preference.
+    
+    Temperature controls creativity and randomness in responses:
+    - Lower temperature (0.3) = More consistent, focused, professional responses
+    - Higher temperature (0.8) = More creative, varied, innovative responses
+    
+    Args:
+        tone (str): Either "professional" or "creative"
+    
+    Returns:
+        dict: Generation configuration for Gemini API
+    
+    Examples:
+        Professional tone produces consistent, formal resume bullets:
+        "Developed web applications using React and JavaScript"
+        
+        Creative tone produces more varied, dynamic language:
+        "Crafted innovative web solutions leveraging React ecosystem"
+    """
+    if tone == "professional":
+        return {
+            "temperature": 0.3,  # Less creative, more consistent
+            "max_output_tokens": 500
+        }
+    elif tone == "creative":
+        return {
+            "temperature": 0.8,  # More creative, more varied
+            "max_output_tokens": 500
+        }
+    else:
+        # Default to professional if invalid tone provided
+        return {
+            "temperature": 0.3,
+            "max_output_tokens": 500
+        }
+
+
+def call_gemini_api(system_prompt, user_prompt, tone="professional", max_retries=1):
     """
     Send prompts to Google's Gemini API and return generated response.
     
     Args:
         system_prompt (str): System prompt defining AI behavior
         user_prompt (str): User prompt with specific request
+        tone (str): Either "professional" (temp=0.3) or "creative" (temp=0.8)
         max_retries (int): Number of retries if JSON parsing fails
     
     Returns:
         dict: Parsed JSON response or error dict
     
+    Temperature Examples:
+        Professional (0.3): "Developed responsive web applications using React"
+        Creative (0.8): "Architected dynamic user experiences with React ecosystem"
+    
     Example:
         response = call_gemini_api(
             system_prompt="You are a career mentor...",
-            user_prompt="Help John optimize his resume..."
+            user_prompt="Help John optimize his resume...",
+            tone="creative"
         )
     """
     try:
@@ -176,12 +221,16 @@ Do not include any text before or after the JSON."""
         # Combine prompts with JSON instruction
         full_prompt = f"{system_prompt}\n\n{user_prompt}\n\n{json_instruction}"
         
+        # Get generation configuration based on tone
+        generation_config = get_generation_config(tone)
+        
         # Attempt to get response with retries
         for attempt in range(max_retries + 1):
             try:
-                # Generate content
+                # Generate content with temperature control
                 response = model.generate_content(
                     contents=full_prompt,
+                    generation_config=generation_config
                 )
                 
                 # Get response text using proper accessor
