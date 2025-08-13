@@ -115,8 +115,8 @@ def generate_ai_response(user_data, job_requirements, career_tips):
         # Create user prompt with all the context
         user_prompt = create_user_prompt(user_data, job_requirements, career_tips)
         
-        # Call Gemini API with structured output (includes retry mechanism)
-        response = call_gemini_api(SYSTEM_PROMPT, user_prompt, max_retries=1)
+        # Call Gemini API with structured output and temperature control
+        response = call_gemini_api(SYSTEM_PROMPT, user_prompt, tone=user_data['tone'], max_retries=1)
         
         return response
         
