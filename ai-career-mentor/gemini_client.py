@@ -170,6 +170,89 @@ def get_generation_config(tone="professional"):
         }
 
 
+def estimate_token_count(text):
+    """
+    Estimate token count based on text length.
+    Rough approximation: 1 token ≈ 4 characters for English text.
+    
+    Args:
+        text (str): Text to estimate tokens for
+    
+    Returns:
+        int: Estimated token count
+    """
+    if not text:
+        return 0
+    return max(1, len(text) // 4)
+
+
+def log_token_usage(response, input_text=""):
+    """
+    Log token usage information from Gemini API response.
+    
+    Args:
+        response: Gemini API response object containing usage metadata
+        input_text (str): Input text for token estimation if metadata unavailable
+    """
+    try:
+        # Check multiple possible locations for usage metadata
+        usage = None
+        prompt_tokens = 0
+        completion_tokens = 0
+        total_tokens = 0
+        
+        # Try different ways to access usage metadata
+        if hasattr(response, 'usage_metadata') and response.usage_metadata:
+            usage = response.usage_metadata
+            prompt_tokens = getattr(usage, 'prompt_token_count', 0)
+            completion_tokens = getattr(usage, 'candidates_token_count', 0)
+            total_tokens = getattr(usage, 'total_token_count', 0)
+        elif hasattr(response, 'candidates') and response.candidates:
+            # Try to get usage from candidates
+            candidate = response.candidates[0]
+            if hasattr(candidate, 'token_count'):
+                completion_tokens = candidate.token_count
+        
+        # If we found any token information, display it
+        if prompt_tokens > 0 or completion_tokens > 0 or total_tokens > 0:
+            print("\n" + "="*50)
+            print("📊 TOKEN USAGE REPORT")
+            print("="*50)
+            print(f"Input tokens:  {prompt_tokens:,}")
+            print(f"Output tokens: {completion_tokens:,}")
+            print(f"Total tokens:  {total_tokens:,}")
+            print("="*50)
+            print("💡 Token usage helps you understand API costs")
+            print("   Gemini pricing is based on token consumption")
+            print("="*50 + "\n")
+        else:
+            # Provide estimated token counts
+            estimated_input = estimate_token_count(input_text)
+            
+            # Try to get output text for estimation
+            output_text = ""
+            if hasattr(response, 'parts') and response.parts:
+                output_text = response.parts[0].text
+            elif hasattr(response, 'candidates') and response.candidates:
+                candidate = response.candidates[0]
+                if candidate.content and candidate.content.parts:
+                    output_text = candidate.content.parts[0].text
+            
+            estimated_output = estimate_token_count(output_text)
+            estimated_total = estimated_input + estimated_output
+            
+            print("\n" + "="*50)
+            print("📊 TOKEN USAGE REPORT (ESTIMATED)")
+            print("="*50)
+            print(f"Input tokens:  ~{estimated_input:,} (estimated)")
+            print(f"Output tokens: ~{estimated_output:,} (estimated)")
+            print(f"Total tokens:  ~{estimated_total:,} (estimated)")
+            print("="*50 + "\n")
+            
+    except Exception as e:
+        print(f"\n⚠️  Could not retrieve token usage: {str(e)}\n")
+
+
 def call_gemini_api(system_prompt, user_prompt, tone="professional", max_retries=1):
     """
     Send prompts to Google's Gemini API and return generated response.
@@ -186,6 +269,10 @@ def call_gemini_api(system_prompt, user_prompt, tone="professional", max_retries
     Temperature Examples:
         Professional (0.3): "Developed responsive web applications using React"
         Creative (0.8): "Architected dynamic user experiences with React ecosystem"
+    
+    Token Logging:
+        Automatically logs input/output token counts after each API call
+        to help users understand API usage and costs
     
     Example:
         response = call_gemini_api(
@@ -232,6 +319,9 @@ Do not include any text before or after the JSON."""
                     contents=full_prompt,
                     generation_config=generation_config
                 )
+                
+                # Log token usage information with input text for estimation
+                log_token_usage(response, full_prompt)
                 
                 # Get response text using proper accessor
                 response_text = ""
