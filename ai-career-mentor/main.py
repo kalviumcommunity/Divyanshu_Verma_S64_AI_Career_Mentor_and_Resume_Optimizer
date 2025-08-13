@@ -56,12 +56,31 @@ def collect_user_input():
         top_k = 80
     # Choice 4 or invalid = None (use default)
     
+    # Collect top_p preference for nucleus sampling
+    print("\nChoose creativity level (Top P parameter):")
+    print("1. Conservative (top_p=0.3) - Focused, predictable responses")
+    print("2. Balanced (top_p=0.7) - Good balance of focus and creativity")
+    print("3. Creative (top_p=0.9) - More diverse, creative responses")
+    print("4. Skip (use default)")
+    top_p_choice = input("Enter choice (1-4): ").strip()
+    
+    # Convert choice to top_p value
+    top_p = None
+    if top_p_choice == "1":
+        top_p = 0.3
+    elif top_p_choice == "2":
+        top_p = 0.7
+    elif top_p_choice == "3":
+        top_p = 0.9
+    # Choice 4 or invalid = None (use default)
+    
     return {
         "name": name,
         "skills": skills,
         "target_role": target_role,
         "tone": tone,
-        "top_k": top_k
+        "top_k": top_k,
+        "top_p": top_p
     }
 
 def process_user_request(user_data):
@@ -134,8 +153,8 @@ def generate_ai_response(user_data, job_requirements, career_tips):
         # Create user prompt with all the context
         user_prompt = create_user_prompt(user_data, job_requirements, career_tips)
         
-        # Call Gemini API with structured output, temperature control, and top_k parameter
-        response = call_gemini_api(SYSTEM_PROMPT, user_prompt, tone=user_data['tone'], top_k=user_data.get('top_k'), max_retries=1)
+        # Call Gemini API with structured output, temperature control, top_k, and top_p parameters
+        response = call_gemini_api(SYSTEM_PROMPT, user_prompt, tone=user_data['tone'], top_k=user_data.get('top_k'), top_p=user_data.get('top_p'), max_retries=1)
         
         return response
         
@@ -186,6 +205,7 @@ def display_results(user_data, processed_data):
     print(f"🎯 Target Role: {processed_data['job_requirements']['role']}")
     print(f"🎨 Tone: {user_data['tone'].title()}")
     print(f"🎛️  Top K: {user_data.get('top_k', 'Default')} (vocabulary diversity)")
+    print(f"🎯 Top P: {user_data.get('top_p', 'Default')} (nucleus sampling)")
     print(f"💼 Current Skills: {', '.join(user_data['skills'])}")
     
     # Display the main output in JSON format (as specified in requirements)
