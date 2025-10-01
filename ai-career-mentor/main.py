@@ -6,7 +6,7 @@ Simple MVP that helps job seekers create better resumes
 
 # Import our custom modules
 from job_functions import getJobRequirements, getAllJobRoles
-from rag_knowledge import retrieveCareerTips, retrieveResumeExamples, searchKnowledgeBase
+from rag_knowledge import retrieveCareerTips, retrieveResumeExamples, searchKnowledgeBase, getVectorDatabaseStats
 from gemini_client import call_gemini_api
 from prompts import SYSTEM_PROMPT, create_user_prompt
 import json
@@ -94,15 +94,15 @@ def process_user_request(user_data):
     job_requirements = getJobRequirements(user_data['target_role'])
     print(f"✓ Found requirements for: {job_requirements['role']}")
     
-    # Step 2: Retrieve career tips using RAG
-    print("📚 Step 2: Retrieving career tips from knowledge base...")
+    # Step 2: Retrieve career tips using enhanced RAG with vector database
+    print("📚 Step 2: Retrieving career tips from enhanced knowledge base...")
     career_tips = retrieveCareerTips(user_data['target_role'])
-    print(f"✓ Retrieved {len(career_tips)} career tips")
+    print(f"✓ Retrieved {len(career_tips)} career tips using semantic search")
     
-    # Step 3: Get resume examples using RAG
-    print("📝 Step 3: Getting resume examples...")
+    # Step 3: Get resume examples using enhanced RAG with vector database
+    print("📝 Step 3: Getting resume examples with semantic matching...")
     resume_examples = retrieveResumeExamples(user_data['target_role'])
-    print(f"✓ Found {len(resume_examples)} resume examples")
+    print(f"✓ Found {len(resume_examples)} resume examples using vector similarity")
     
     # Step 4: Analyze skill gaps
     print("🎯 Step 4: Analyzing skill gaps...")
@@ -115,10 +115,7 @@ def process_user_request(user_data):
     
     if "error" in ai_response:
         print(f"⚠️  AI generation failed: {ai_response['error']}")
-        print("   Falling back to example-based generation...")
-        # Fallback to example-based generation
-        resume_bullets = generate_resume_bullets(user_data, job_requirements, career_tips, resume_examples)
-        ai_skill_gaps = skill_gaps  # Use our calculated skill gaps
+    
     else:
         print(f"✓ AI generated {len(ai_response['resumeBullets'])} resume bullets")
         print(f"✓ AI identified {len(ai_response['skillGaps'])} skill gaps")
@@ -199,6 +196,16 @@ def display_results(user_data, processed_data):
     print("\n" + "="*60)
     print("🎉 AI CAREER MENTOR RESULTS")
     print("="*60)
+    
+    # Show vector database status
+    db_stats = getVectorDatabaseStats()
+    print(f"\n🗄️  Enhanced RAG System Status:")
+    print(f"   Vector Database: {db_stats['status']}")
+    if db_stats['status'] == 'available':
+        print(f"   Knowledge Documents: {db_stats['count']}")
+        print(f"   Search Method: Semantic similarity matching")
+    else:
+        print(f"   Fallback: Dictionary-based retrieval")
     
     # Display user info
     print(f"\n👤 Candidate: {user_data['name']}")

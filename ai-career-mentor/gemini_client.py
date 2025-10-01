@@ -184,7 +184,7 @@ def get_generation_config(tone="professional", top_k=None, top_p=None):
         config["temperature"] = 0.3
     
     # Always set max_output_tokens
-    config["max_output_tokens"] = 500
+    config["max_output_tokens"] = 2000
     
     # Add top_k if specified (validate range)
     if top_k is not None:

@@ -1,15 +1,21 @@
 """
-RAG Knowledge Module - Retrieval-Augmented Generation Implementation
+RAG Knowledge Module - Enhanced Retrieval-Augmented Generation Implementation
 
-This module provides simple RAG functionality by storing and retrieving
-career tips and resume examples for different job roles. This demonstrates
-the RAG concept using basic Python dictionaries and string matching.
+This module provides enhanced RAG functionality using a vector database for semantic search.
+It maintains backward compatibility with the original dictionary-based approach as a fallback.
+The vector database enables more intelligent retrieval of career tips and resume examples
+based on semantic similarity rather than exact keyword matching.
 """
+
+from vector_database import vector_db
+import logging
+
+logger = logging.getLogger(__name__)
 
 def retrieveCareerTips(job_role):
     """
-    Simple RAG implementation that retrieves relevant career tips
-    for a specific job role from a predefined knowledge base.
+    Enhanced RAG implementation that retrieves relevant career tips using vector database
+    semantic search, with fallback to dictionary-based approach.
     
     Args:
         job_role (str): The job role to get career tips for
@@ -18,7 +24,31 @@ def retrieveCareerTips(job_role):
         list: List of career tips relevant to the job role
     """
     
-    # Knowledge base of career tips for different roles
+    # Try vector database first for semantic search
+    try:
+        # Create a search query that includes the job role and career guidance context
+        search_query = f"career tips advice guidance for {job_role} professional development resume"
+        
+        # Perform semantic search for career tips
+        results = vector_db.semantic_search(
+            query=search_query,
+            job_role=job_role.lower().replace(" ", "_"),
+            content_type="career_tip",
+            n_results=5
+        )
+        
+        if results:
+            # Extract documents from results and log similarity scores
+            tips = [result['document'] for result in results]
+            logger.info(f"Retrieved {len(tips)} career tips from vector database for {job_role}")
+            for i, result in enumerate(results):
+                logger.debug(f"Tip {i+1} similarity: {result['similarity_score']:.3f}")
+            return tips
+            
+    except Exception as e:
+        logger.warning(f"Vector database search failed: {e}, falling back to dictionary")
+    
+    # Fallback to original dictionary-based approach
     career_tips_db = {
         "frontend developer": [
             "Emphasize user-facing projects and UI/UX improvements in your resume",
@@ -69,14 +99,14 @@ def retrieveCareerTips(job_role):
         ]
     }
     
-    # Return career tips for the specified role, or default to frontend developer
+    logger.info(f"Using fallback dictionary for {job_role}")
     return career_tips_db.get(job_role.lower(), career_tips_db["frontend developer"])
 
 
 def retrieveResumeExamples(job_role):
     """
-    Retrieves example resume bullet points for a specific job role.
-    This provides additional RAG content for resume generation.
+    Enhanced retrieval of resume examples using vector database semantic search,
+    with fallback to dictionary-based approach.
     
     Args:
         job_role (str): The job role to get resume examples for
@@ -85,7 +115,31 @@ def retrieveResumeExamples(job_role):
         list: List of example resume bullet points
     """
     
-    # Knowledge base of resume examples for different roles
+    # Try vector database first for semantic search
+    try:
+        # Create a search query for resume examples
+        search_query = f"resume bullet points examples achievements for {job_role} professional experience"
+        
+        # Perform semantic search for resume examples
+        results = vector_db.semantic_search(
+            query=search_query,
+            job_role=job_role.lower().replace(" ", "_"),
+            content_type="resume_example",
+            n_results=4
+        )
+        
+        if results:
+            # Extract documents from results
+            examples = [result['document'] for result in results]
+            logger.info(f"Retrieved {len(examples)} resume examples from vector database for {job_role}")
+            for i, result in enumerate(results):
+                logger.debug(f"Example {i+1} similarity: {result['similarity_score']:.3f}")
+            return examples
+            
+    except Exception as e:
+        logger.warning(f"Vector database search failed: {e}, falling back to dictionary")
+    
+    # Fallback to original dictionary-based approach
     resume_examples_db = {
         "frontend developer": [
             "Developed responsive web applications using React and JavaScript, improving user engagement by 25%",
@@ -109,7 +163,7 @@ def retrieveResumeExamples(job_role):
         ],
         
         "product manager": [
-            "Led cross-functional team of 8 engineers and designers to deliver 3 major product features",
+            "Led cross-functional team of 8 engineers and designers to deliver 3 major project features",
             "Increased user engagement by 35% through data-driven product improvements",
             "Conducted user research and market analysis to inform product roadmap decisions",
             "Managed product backlog and sprint planning, improving team velocity by 25%"
@@ -130,29 +184,75 @@ def retrieveResumeExamples(job_role):
         ]
     }
     
-    # Return resume examples for the specified role, or default to frontend developer
+    logger.info(f"Using fallback dictionary for {job_role}")
     return resume_examples_db.get(job_role.lower(), resume_examples_db["frontend developer"])
 
 
 def searchKnowledgeBase(query, job_role=None):
     """
-    Simple search function to find relevant knowledge based on a query.
-    This demonstrates basic RAG retrieval functionality.
+    Enhanced search function using vector database for semantic similarity search.
+    This provides more intelligent RAG retrieval based on query meaning rather than keywords.
     
     Args:
         query (str): Search query
         job_role (str, optional): Specific job role to search within
         
     Returns:
-        dict: Dictionary containing relevant tips and examples
+        dict: Dictionary containing relevant tips and examples with similarity scores
     """
     
+    try:
+        # Perform semantic search across all content types
+        all_results = vector_db.semantic_search(
+            query=query,
+            job_role=job_role.lower().replace(" ", "_") if job_role else None,
+            n_results=10
+        )
+        
+        if all_results:
+            # Separate tips and examples
+            tips = []
+            examples = []
+            
+            for result in all_results:
+                if result['metadata']['content_type'] == 'career_tip':
+                    tips.append({
+                        'content': result['document'],
+                        'similarity_score': result['similarity_score'],
+                        'job_role': result['metadata']['job_role']
+                    })
+                elif result['metadata']['content_type'] == 'resume_example':
+                    examples.append({
+                        'content': result['document'],
+                        'similarity_score': result['similarity_score'],
+                        'job_role': result['metadata']['job_role']
+                    })
+            
+            # Limit to top 5 of each type
+            tips = tips[:5]
+            examples = examples[:5]
+            
+            logger.info(f"Vector search found {len(tips)} tips and {len(examples)} examples for query: '{query}'")
+            
+            return {
+                "career_tips": [tip['content'] for tip in tips],
+                "resume_examples": [example['content'] for example in examples],
+                "query": query,
+                "job_role": job_role,
+                "search_method": "vector_database",
+                "tip_scores": [tip['similarity_score'] for tip in tips],
+                "example_scores": [example['similarity_score'] for example in examples]
+            }
+            
+    except Exception as e:
+        logger.warning(f"Vector database search failed: {e}, using fallback")
+    
+    # Fallback to role-based retrieval
     if job_role:
-        # Search within specific job role
         tips = retrieveCareerTips(job_role)
         examples = retrieveResumeExamples(job_role)
     else:
-        # Search across all roles (simplified - just return general tips)
+        # General tips for any role
         tips = [
             "Use action verbs to start each bullet point (Developed, Implemented, Optimized)",
             "Quantify achievements with specific numbers and percentages",
@@ -169,5 +269,39 @@ def searchKnowledgeBase(query, job_role=None):
         "career_tips": tips,
         "resume_examples": examples,
         "query": query,
-        "job_role": job_role
+        "job_role": job_role,
+        "search_method": "fallback_dictionary"
     }
+
+
+def addKnowledgeToDatabase(content, job_role, content_type, source="user_added"):
+    """
+    Add new knowledge to the vector database
+    
+    Args:
+        content (str): The content to add
+        job_role (str): Job role this content relates to
+        content_type (str): 'career_tip' or 'resume_example'
+        source (str): Source of the content
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    try:
+        success = vector_db.add_knowledge(content, job_role, content_type, source)
+        if success:
+            logger.info(f"Successfully added {content_type} for {job_role}")
+        return success
+    except Exception as e:
+        logger.error(f"Failed to add knowledge: {e}")
+        return False
+
+
+def getVectorDatabaseStats():
+    """
+    Get statistics about the vector database
+    
+    Returns:
+        dict: Database statistics
+    """
+    return vector_db.get_stats()
