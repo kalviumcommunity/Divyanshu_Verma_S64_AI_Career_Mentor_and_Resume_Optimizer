@@ -10,16 +10,64 @@ The AI Career Mentor is an intelligent resume optimization tool designed to help
 - 3-5 professionally written, action-oriented resume bullet points
 - 2-3 specific skill gaps with learning recommendations
 - Tone customization (professional vs. creative writing styles)
+- Advanced AI parameters (Top K, Top P) for vocabulary and creativity control
 
 **Target Users**: Students, recent graduates, and career changers who need help optimizing their resumes for specific job roles.
 
+## ✨ Enhanced Features
+
+### 🚀 Vector Database Integration
+- **Semantic Search**: Finds relevant content based on meaning, not just keywords
+- **Enhanced RAG**: Retrieval-Augmented Generation with similarity scoring
+- **Dynamic Knowledge**: Add new career tips and resume examples without code changes
+- **Cross-Role Discovery**: Discover relevant advice from related job roles
+- **Persistent Storage**: Knowledge base persists across application restarts
+
+### 🎛️ Advanced AI Parameters
+- **Top K Control**: Vocabulary diversity (20-80 range for different creativity levels)
+- **Top P Control**: Nucleus sampling (0.3-0.9 range for conservative to creative responses)
+- **Temperature Settings**: Professional (0.3) vs Creative (0.8) tone control
+- **Token Usage Tracking**: Monitor API costs and usage patterns
+
+### 📊 Enhanced User Experience
+- **Step-by-Step Processing**: Real-time progress updates during resume generation
+- **Vector Database Status**: Live reporting of enhanced RAG system status
+- **Detailed Results Display**: Comprehensive analysis with similarity scores
+- **Interactive Parameter Selection**: User-friendly prompts for AI configuration
+
 ## How It Works
 
-1. **User Input**: Collect name, current skills, target job role, and preferred tone
+1. **User Input**: Collect name, current skills, target job role, tone preference, and AI parameters (Top K, Top P)
 2. **Job Analysis**: Retrieve specific job requirements using function calling
-3. **Knowledge Retrieval**: Get industry-specific resume writing tips using RAG
-4. **AI Generation**: Send structured prompts to Gemini API with tuned parameters
+3. **Enhanced Knowledge Retrieval**: Get industry-specific resume writing tips using vector database semantic search
+4. **AI Generation**: Send structured prompts to Gemini API with advanced parameters (temperature, top_k, top_p)
 5. **Structured Output**: Return formatted JSON with resume bullets and skill gaps
+6. **Results Display**: Show comprehensive results with vector database status and token usage
+
+## Advanced AI Parameters Guide
+
+### 🎛️ Top K (Vocabulary Diversity)
+Controls vocabulary selection by limiting to top K most likely tokens:
+- **20 (Focused)**: Predictable, common vocabulary - "Developed standard web applications"
+- **40 (Balanced)**: Default Gemini setting - "Developed responsive web applications"
+- **80 (Diverse)**: Creative, varied vocabulary - "Architected sophisticated applications"
+
+### 🎯 Top P (Nucleus Sampling)
+Controls cumulative probability threshold for token selection:
+- **0.3 (Conservative)**: Focused, predictable responses - "Standard industry practices"
+- **0.7 (Balanced)**: Good balance of focus and creativity - "Effective professional approaches"
+- **0.9 (Creative)**: Diverse, creative responses - "Innovative strategic methodologies"
+
+### 🎨 Tone Settings
+- **Professional (Temperature: 0.3)**: Formal, consistent, business-appropriate language
+- **Creative (Temperature: 0.8)**: Varied, innovative, engaging language
+
+### 💰 Token Usage Tracking
+The system automatically logs and displays:
+- Input token count (estimated vs actual)
+- Output token count
+- Total API usage for cost monitoring
+- Gemini API pricing awareness
 
 ## Core AI Concepts Implementation
 
@@ -240,21 +288,140 @@ RESULTS
 
 ```
 ai-career-mentor/
-├── README.md               # Project documentation
-├── main.py                 # Main CLI application
-├── prompts.py              # System & User prompt implementations
-├── gemini_client.py        # Gemini API & Structured output & Tunable parameters
-├── job_functions.py        # Function calling implementation
-├── rag_knowledge.py        # RAG knowledge base
-├── requirements.txt        # Python dependencies
-├── .env.example           # Environment variables template
-├── .env                   # Your actual API key (don't commit!)
-└── .gitignore             # Git ignore file
+├── README.md                    # Project documentation
+├── main.py                      # Main CLI application with enhanced UI
+├── prompts.py                   # System & User prompt implementations
+├── gemini_client.py             # Gemini API client with advanced parameters
+├── job_functions.py             # Function calling implementation
+├── rag_knowledge.py             # Enhanced RAG with vector database
+├── vector_database.py           # Vector database for semantic search
+├── demo_vector_db.py           # Vector database demonstration script
+├── requirements.txt             # Python dependencies (updated)
+├── TOP_K_EXAMPLES.md           # Top K parameter documentation
+├── TOP_P_EXAMPLES.md           # Top P parameter documentation
+├── VECTOR_DATABASE_README.md   # Vector database detailed documentation
+├── .env.example                # Environment variables template
+├── .env                        # Your actual API key (don't commit!)
+├── .gitignore                  # Git ignore file (updated)
+├── vector_db/                  # Vector database storage directory
+└── __pycache__/               # Python bytecode cache
 ```
 
-## Next Steps
+## Updated Dependencies
 
-1. Get a Gemini API key from Google AI Studio
-2. Implement the remaining course concept branches
-3. Test with different job roles and skill combinations
-4. Add more job roles and career tips to the knowledge base
+The project now includes additional dependencies for enhanced functionality:
+
+```txt
+google-generativeai==0.3.2      # Google's Gemini AI API
+python-dotenv==1.0.0           # Environment variable management
+sentence-transformers>=2.3.0    # Text embedding generation (NEW)
+scikit-learn>=1.0.0            # Vector similarity calculations (NEW)
+```
+
+## Demo and Testing
+
+### Vector Database Demo
+Test the enhanced RAG capabilities with semantic search:
+
+```bash
+python demo_vector_db.py
+```
+
+**Demo Features**:
+- Basic vector database functionality
+- Semantic search capabilities
+- Cross-role knowledge discovery
+- Dynamic knowledge addition
+- Similarity scoring demonstration
+
+### Advanced Parameter Testing
+Experiment with different AI parameters:
+
+```bash
+python main.py
+```
+
+**Interactive Options**:
+- Choose vocabulary diversity (Top K: 20, 40, 80)
+- Select creativity level (Top P: 0.3, 0.7, 0.9)
+- Toggle tone (Professional vs Creative)
+- View token usage and costs
+
+## Enhanced RAG with Vector Database
+
+### 🔍 Semantic Search Benefits
+The vector database integration provides significant improvements over traditional keyword-based search:
+
+**Before (Keyword Matching)**:
+- Search for "leadership" → Only finds exact word "leadership"
+- Limited to surface-level text matching
+- Misses related concepts and synonyms
+
+**After (Semantic Search)**:
+- Search for "leadership" → Finds "team management", "project coordination", "mentoring"
+- Understands context and meaning
+- Discovers related concepts across different job roles
+
+### 🚀 Key Improvements
+1. **Better Relevance**: Similarity scoring ensures most relevant results appear first
+2. **Cross-Role Learning**: Discover applicable knowledge from related job roles
+3. **Dynamic Growth**: Add new knowledge without code changes
+4. **Persistent Memory**: Knowledge base survives application restarts
+5. **Fallback Safety**: Automatic fallback to dictionary-based approach if vector DB fails
+
+### 📈 Performance Benefits
+- **Quality**: More relevant and diverse career advice
+- **Speed**: Efficient similarity search across large knowledge bases
+- **Scalability**: Grows with your knowledge base size
+- **Reliability**: Robust error handling and graceful degradation
+
+## Next Steps & Recommendations
+
+### 🚀 Immediate Actions
+1. **Get Gemini API Key**: Obtain from [Google AI Studio](https://aistudio.google.com/)
+2. **Test Enhanced Features**: Run `python demo_vector_db.py` to see semantic search in action
+3. **Experiment with Parameters**: Try different Top K and Top P combinations in `main.py`
+
+### 🔧 Development Opportunities
+1. **Expand Knowledge Base**: Add more job roles and industry-specific advice
+2. **Fine-tune Parameters**: Optimize Top K and Top P values for different use cases
+3. **Add More Integrations**: Connect with job market APIs for real-time requirements
+4. **User Interface**: Develop web-based interface for easier interaction
+
+### 📊 Monitoring & Optimization
+1. **Token Usage Tracking**: Monitor API costs with built-in usage reporting
+2. **Performance Analytics**: Track which parameters and settings work best
+3. **User Feedback**: Collect feedback on result quality and relevance
+4. **Continuous Learning**: Use feedback to improve prompts and knowledge base
+
+### 🎯 Advanced Features to Consider
+1. **Personalization**: Remember user preferences and history
+2. **Multi-language Support**: Extend to other languages beyond English
+3. **Industry-specific Models**: Fine-tune for specific industries or job types
+4. **Integration APIs**: Allow other applications to use the resume optimization engine
+
+## Support & Documentation
+
+### 📚 Additional Resources
+- **[TOP_K_EXAMPLES.md](ai-career-mentor/TOP_K_EXAMPLES.md)**: Detailed Top K parameter guide
+- **[TOP_P_EXAMPLES.md](ai-career-mentor/TOP_P_EXAMPLES.md)**: Comprehensive Top P documentation
+- **[VECTOR_DATABASE_README.md](ai-career-mentor/VECTOR_DATABASE_README.md)**: In-depth vector database documentation
+
+### 🛠️ Troubleshooting
+- **Vector DB Issues**: Check that all dependencies are installed correctly
+- **API Key Problems**: Verify `.env` file contains valid Gemini API key
+- **Search Results**: If semantic search fails, system automatically uses fallback method
+- **Performance**: Monitor token usage to optimize API costs
+
+## Contributing
+
+The AI Career Mentor is designed to be extensible. Consider contributing:
+- New job role definitions
+- Enhanced career tips and examples
+- Improved prompt engineering
+- Additional AI parameter options
+- User interface enhancements
+
+---
+
+**✨ Ready to optimize your resume?** Run `python main.py` and experience the power of enhanced AI with vector database integration!
